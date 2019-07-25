@@ -1,25 +1,109 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "PA1_template"
+author: "Gabe Rezavi"
+date: "7/25/2019"
+output: html_document
 ---
 
+This is my second attempt for our RMarkdown Project 1 document. Let's load the data and libraries and check it out.
 
-## Loading and preprocessing the data
+```{r}
+library(ggplot2)
+library(dplyr)
+activity <- read.csv(file="activity.csv", header=TRUE, sep=",")
+str(activity)
+head(activity,3)
+```
+What is mean total number of steps taken per day? Visualization (histogram)? 
 
+```{r}
+Tot.Steps <- aggregate(steps ~ date, activity, FUN=sum)
+head(Tot.Steps,3)
+hist(Tot.Steps$steps, col="blue", xlab = "Number of Steps", ylab = "Steps", main = "Total Steps taken by Day")
+```
+Mean and Median of the total number of steps taken per day?
 
+```{r}
+Mean.Steps <- mean(Tot.Steps$steps)
+Mean.Steps
+Median.Steps <- median(Tot.Steps$steps)
+Median.Steps
+```
 
-## What is mean total number of steps taken per day?
+What is the average daily activity pattern?
 
+```{r}
+Intervals <- aggregate(steps ~ interval, activity, FUN=sum)
+head(Intervals,3)
+plot(Intervals$interval, Intervals$steps, type = "l", lwd = 2, xlab = "Interval", ylab = "Total Steps", main = "The Average Daily Activity Pattern") 
+```
 
+Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
 
-## What is the average daily activity pattern?
+```{r}
+max.Steps <- Intervals[which.max(Intervals$steps),1]
+max.Intervals <- max(Intervals)
+max.Steps
+max.Intervals
+```
+The maximum numbers of steps `r max.Intervals` were taken on the `r max.Steps` interval, as illustrated here using the inline code.
 
+Now, I will try to impute missing values starting with first calculating the total number of missing values (NAs) in the dataset.
 
+```{r}
+table(is.na(activity))
+```
 
-## Imputing missing values
+Let's impute the missing values with an appropriate strategy and recreate the data set as max.Steps2.
 
+```{r}
+Mean.Intervals <- aggregate(steps ~ interval, activity, FUN=mean)
+New.Intervals <- merge(x=activity, y=Mean.Intervals, by="interval")
 
+New.Intervals$steps <- ifelse(is.na(New.Intervals$steps.x), New.Intervals$steps.y, New.Intervals$steps.x)
+head(New.Intervals)
 
-## Are there differences in activity patterns between weekdays and weekends?
+New.Intervals <- select(New.Intervals, steps, date, interval)
+head(New.Intervals)
+
+Tot.Steps2 <- aggregate(steps ~ date, New.Intervals, FUN=sum)
+head(Tot.Steps2,3)
+```
+
+Before and after visualization via simple histograms.
+
+```{r}
+par(mfrow=c(1,2))
+
+hist(Tot.Steps2$steps, col="yellow", xlab = "Steps", ylab = "Frequency", ylim = c(0,35), main = "Total Number Of Steps Taken Each day (w/ Imputation)", cex.main = 0.7)
+
+hist(Tot.Steps$steps, col="red", xlab = "Steps", ylab = "Frequency", ylim = c(0,35), main = "Total Number Of Steps Taken Each day (w/out Imputation)", cex.main = 0.7)
+```
+Now, let's calculate how much the mean and the media values have changed as a result of these imputations.
+
+```{r}
+Mean.Steps2 <- mean(Tot.Steps2$steps)
+Median.Steps2 <- median(Tot.Steps2$steps)
+Diff.in.Mean <- Mean.Steps - Mean.Steps2
+Diff.in.Median <- Median.Steps - Median.Steps2
+Diff.in.Mean
+Diff.in.Median
+```
+
+The difference in mean is `r Diff.in.Mean` while the difference in the median is `r Diff.in.Median`.
+
+Now, let's check out the difference in activities between the weekdays and the weekend.
+
+```{r}
+library(chron)
+table(is.weekend(New.Intervals$date))
+New.Intervals$dayofweek <- ifelse(is.weekend(New.Intervals$date), "weekend", "weekday")
+head(New.Intervals)
+
+Mean.Itervals2 <- aggregate(steps ~ interval + dayofweek, New.Intervals, FUN=mean)
+head(Mean.Itervals2)
+
+ggplot(Mean.Itervals2, aes(x=interval, y=steps)) + geom_line(color="blue", size=1) + facet_wrap(~dayofweek, nrow=2) + labs(x="\nInterval", y="\nNumber of steps")
+```
+Thank you!
+

@@ -1,0 +1,109 @@
+## Beginning of the assignment
+## Loading and preprocessing the data
+
+## Installing and attaching the potentially necessary packages
+
+library(knitr)
+library(ggplot2)
+library(dplyr)
+library(plyr)
+library(chron)        
+
+activity <- read.csv(file.choose())
+
+## Inspect the datagram
+
+str(activity)
+dim(activity)
+head(activity,3)
+
+## What is mean total number of steps taken per day? Visualization (histogram)? 
+
+Tot.Steps <- aggregate(steps ~ date, activity, FUN=sum)
+        head(Tot.Steps,3)
+        
+hist(Tot.Steps$steps, col="blue", xlab = "Number of Steps", ylab = "Steps", main = "Total Steps taken by Day")
+
+## Mean and Median of the total number of steps taken per day?
+
+Mean.Steps <- mean(Tot.Steps$steps)
+        Mean.Steps
+
+Median.Steps <- median(Tot.Steps$steps)
+        Median.Steps
+
+## What is the average daily activity pattern?
+
+Intervals <- aggregate(steps ~ interval, activity, FUN=sum)
+        plot(Intervals$interval, Intervals$steps, type = "l", lwd = 2, xlab = "Interval", ylab = "Total Steps", main = "The Average Daily Activity Pattern") 
+        head(Intervals,3)
+
+## Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+
+max.Steps <- Intervals[which.max(Intervals$steps),1]
+        max(Intervals)
+        max.Steps
+
+## Imputing missing values
+
+## Calculate/ report the total number of missing values (NAs) in the dataset
+
+table(is.na(activity))
+
+## Devise a strategy for filling in all of the missing values in the dataset. The strategy does not need to be sophisticated. For example, you could use the mean/median for that day, or the mean for that 5-minute interval, etc.
+
+Mean.Intervals <- aggregate(steps ~ interval, activity, FUN=mean)
+New.Intervals <- merge(x=activity, y=Mean.Intervals, by="interval")
+New.Intervals$steps <- ifelse(is.na(New.Intervals$steps.x), New.Intervals$steps.y, New.Intervals$steps.x)
+        head(New.Intervals)
+
+## Create a new dataset that is equal to the original dataset but with the missing data filled in.
+
+New.Intervals <- select(New.Intervals, steps, date, interval)
+        head(New.Intervals)
+
+## Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. 
+
+Tot.Steps2 <- aggregate(steps ~ date, New.Intervals, FUN=sum)
+
+par(mfrow=c(1,2))
+        hist(Tot.Steps2$steps, col="yellow", xlab = "Steps", ylab = "Frequency", ylim = c(0,35), main = "Total Number Of Steps Taken Each day (w/ Imputation)", cex.main = 0.7)
+        hist(Tot.Steps$steps, col="red", xlab = "Steps", ylab = "Frequency", ylim = c(0,35), main = "Total Number Of Steps Taken Each day (w/out Imputation)", cex.main = 0.7)
+
+Mean.Steps2 <- mean(Tot.Steps2$steps)
+        Mean.Steps2
+Median.Steps2 <- median(Tot.Steps2$steps)
+        Median.Steps2
+
+## Before and after imputations, mean and median values        
+        
+Mean.Steps
+Mean.Steps2
+Median.Steps
+Median.Steps2
+
+Diff.in.Mean <- Mean.Steps - Mean.Steps2
+Diff.in.Mean
+
+Diff.in.Median <- Median.Steps - Median.Steps2
+Diff.in.Median
+
+## The mean values did not change but the median values increased slightly after imputation.
+
+## Are there differences in activity patterns between weekdays and weekends?
+
+## Create a new factor variable in the dataset with two levels - "weekday" and "weekend" indicating whether a given date is a weekday or weekend day.
+
+table(is.weekend(New.Intervals$date))
+New.Intervals$dayofweek <- ifelse(is.weekend(New.Intervals$date), "weekend", "weekday")
+head(New.Intervals)
+
+## Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). The plot should look something like the following, which was created using simulated data:
+
+Mean.Itervals2 <- aggregate(steps ~ interval + dayofweek, New.Intervals, FUN=mean)
+        head(Mean.Itervals2)
+
+ggplot(Mean.Itervals2, aes(x=interval, y=steps)) + geom_line(color="blue", size=1) + facet_wrap(~dayofweek, nrow=2) + labs(x="\nInterval", y="\nNumber of steps")
+
+## End of assignment
+## Thank you!
